@@ -1,0 +1,256 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AgentProfile {
+  id                String   @id @default(uuid())
+  name              String
+  persona           String
+  risk_appetite     Float    @default(0.5)
+  strategy_type     String
+  capital           Float    @default(10000.0)
+  long_term_memory  Json?    @db.JsonB
+  memory_embedding  String?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  simulations       SimulationResult[]
+  agent_interactions AgentInteraction[]
+  memory_entries    MemoryEntry[]
+}
+
+model MemoryEntry {
+  id          String   @id @default(uuid())
+  agent_id    String
+  event_type  String
+  content     String
+  sentiment   String
+  outcome     String
+  embedding   String?
+  timestamp   DateTime @default(now())
+
+  agent       AgentProfile @relation(fields: [agent_id], references: [id], onDelete: Cascade)
+
+  @@index([agent_id])
+  @@index([event_type])
+  @@index([timestamp])
+}
+
+model AgentInteraction {
+  id             String   @id @default(uuid())
+  simulation_id  String
+  agent_id       String
+  target_agent_id String?
+
+  action         InteractionAction
+  content        String
+  reasoning      String?
+  sentiment      String?
+  timestamp      DateTime @default(now())
+
+  agent          AgentProfile @relation(fields: [agent_id], references: [id], onDelete: Cascade)
+
+  @@index([simulation_id])
+  @@index([agent_id])
+  @@index([timestamp])
+}
+
+enum InteractionAction {
+  POST_ANALYSIS
+  COUNTER_ARGUMENT
+  FOLLOW_LEADER
+}
+
+model EconomicEvent {
+  id            String   @id @default(uuid())
+  title         String
+  description   String?
+  impact_score  Float
+  currency_pair String
+  event_type    String
+  timestamp     DateTime @default(now())
+  source        String?
+
+  simulations   SimulationResult[]
+}
+
+model SimulationRun {
+  id               String   @id @default(uuid())
+  name             String?
+  status           String   @default("PENDING")
+  started_at       DateTime?
+  completed_at     DateTime?
+  created_at       DateTime @default(now())
+
+  results          SimulationResult[]
+  event_store      SimulationEvent[]
+  interactions     AgentInteraction[]
+}
+
+model SimulationEvent {
+  id           String   @id @default(uuid())
+  simulation_id String
+  aggregate_id String
+  event_type   String
+  payload      Json     @db.JsonB
+  metadata     Json?    @db.JsonB
+  timestamp    DateTime @default(now())
+  version      Int      @default(1)
+
+  simulation   SimulationRun @relation(fields: [simulation_id], references: [id], onDelete: Cascade)
+
+  @@index([simulation_id])
+  @@index([aggregate_id])
+  @@index([event_type])
+  @@index([timestamp])
+}
+
+model SimulationResult {
+  id                String   @id @default(uuid())
+  agent_id          String
+  event_id          String
+  simulation_id     String
+
+  emergent_sentiment String
+  price_bias        Float
+  trade_action      String?
+  confidence        Float   @default(0.0)
+  reasoning         String?
+  created_at        DateTime @default(now())
+
+  agent     AgentProfile    @relation(fields: [agent_id], references: [id])
+  event     EconomicEvent  @relation(fields: [event_id], references: [id])
+  simulation SimulationRun @relation(fields: [simulation_id], references: [id])
+
+  @@index([agent_id])
+  @@index([event_id])
+  @@index([simulation_id])
+}
+
+model KnowledgeGraphEntity {
+  id         String   @id @default(uuid())
+  type       String
+  label      String
+  properties Json     @db.JsonB
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([type, label])
+}
+
+model KnowledgeGraphRelationship {
+  id           String   @id @default(uuid())
+  source_type  String
+  source_label String
+  target_type  String
+  target_label String
+  relationship String
+  properties   Json?    @db.JsonB
+  weight       Float    @default(1.0)
+  created_at   DateTime @default(now())
+
+  @@index([source_type, source_label])
+  @@index([target_type, target_label])
+  @@index([relationship])
+}
+
+model MarketNarrative {
+  id               String   @id @default(uuid())
+  simulation_id    String
+  summary          String
+  herd_behavior    Json?    @db.JsonB
+  contrarian       Json?    @db.JsonB
+  volatility       Json?    @db.JsonB
+  key_events       Json?    @db.JsonB
+  timestamp        DateTime @default(now())
+
+  @@index([simulation_id])
+}
+
+model ShadowTradeLog {
+  id                    String   @id @default(uuid())
+  agent_id              String
+  agent_persona         String
+  simulation_id         String?
+  
+  predicted_action      PredictionAction
+  predicted_direction   String
+  confidence            Float
+  reasoning             String?
+  thought_process       Json?    @db.JsonB
+  
+  entry_price           Float
+  entry_time            DateTime @default(now())
+  
+  outcome_5m            ShadowOutcome?
+  outcome_15m           ShadowOutcome?
+  outcome_60m           ShadowOutcome?
+  
+  swarm_agreement       Float?
+  swarm_verdict         String?
+  
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  @@index([agent_id])
+  @@index([agent_persona])
+  @@index([simulation_id])
+  @@index([predicted_action])
+  @@index([entry_time])
+}
+
+enum PredictionAction {
+  BUY
+  SELL
+  HOLD
+  WAIT
+}
+
+enum ShadowOutcome {
+  PENDING
+  CORRECT
+  INCORRECT
+  PARTIAL
+}
+
+model ContextFragment {
+  id          String   @id @default(uuid())
+  entity_type String
+  entity_label String
+  content     String
+  embedding   String?
+  
+  source_type String
+  source_id   String?
+  
+  tick_data   Json?    @db.JsonB
+  news_data   Json?    @db.JsonB
+  
+  created_at  DateTime @default(now())
+  expires_at  DateTime?
+
+  @@index([entity_type, entity_label])
+  @@index([source_type])
+  @@index([created_at])
+}
+
+model WorldState {
+  id              String   @id @default(uuid())
+  version         Int      @default(1)
+  snapshot        Json     @db.JsonB
+  price_ticks     Json?    @db.JsonB
+  news_items      Json?    @db.JsonB
+  entities        Json?    @db.JsonB
+  relationships   Json?    @db.JsonB
+  
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  @@index([version])
+  @@index([created_at])
+}

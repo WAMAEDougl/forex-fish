@@ -1,0 +1,46 @@
+{
+  "name": "forexfish",
+  "version": "1.0.0",
+  "description": "Multi-agent AI simulation backend for Forex trading",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "nest build",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "start:prod": "node dist/main",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@nestjs/apollo": "^12.0.11",
+    "@nestjs/bullmq": "^10.1.0",
+    "@nestjs/common": "^10.3.0",
+    "@nestjs/config": "^4.0.3",
+    "@nestjs/core": "^10.3.0",
+    "@nestjs/graphql": "^12.0.11",
+    "@nestjs/platform-express": "^10.3.0",
+    "@nestjs/platform-socket.io": "^10.3.0",
+    "@nestjs/schedule": "^6.1.1",
+    "@nestjs/websockets": "^10.3.0",
+    "@prisma/client": "^5.9.1",
+    "apollo-server-express": "^3.13.0",
+    "bullmq": "^5.1.0",
+    "graphql": "^16.8.1",
+    "graphql-ws": "^5.14.3",
+    "neo4j-driver": "^5.15.0",
+    "reflect-metadata": "^0.2.1",
+    "rxjs": "^7.8.1",
+    "uuid": "^9.0.1",
+    "zeromq": "^6.5.0"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^10.3.0",
+    "@nestjs/schematics": "^10.1.0",
+    "@types/node": "^20.11.5",
+    "@types/uuid": "^9.0.7",
+    "prisma": "^5.9.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}

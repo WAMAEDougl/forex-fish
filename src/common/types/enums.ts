@@ -1,0 +1,37 @@
+export enum PersonaType {
+  WHALE = 'WHALE',
+  PANIC_SELLER = 'PANIC_SELLER',
+  SCALPER = 'SCALPER',
+  MOMENTUM_TRADER = 'MOMENTUM_TRADER',
+  CONTRARIAN = 'CONTRARIAN',
+  NEWS_TRADER = 'NEWS_TRADER',
+  ALGORITHMIC = 'ALGORITHMIC',
+}
+
+export enum TradeAction {
+  BUY = 'BUY',
+  SELL = 'SELL',
+  HOLD = 'HOLD',
+}
+
+export enum SentimentType {
+  BULLISH = 'BULLISH',
+  BEARISH = 'BEARISH',
+  NEUTRAL = 'NEUTRAL',
+  VOLATILE = 'VOLATILE',
+}
+
+export enum SimulationStatus {
+  PENDING = 'PENDING',
+  RUNNING = 'RUNNING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+}
+
+export enum StrategyType {
+  LONG_TERM = 'LONG_TERM',
+  SHORT_TERM = 'SHORT_TERM',
+  SCALPING = 'SCALPING',
+  SWING = 'SWING',
+  NEWS_BASED = 'NEWS_BASED',
+}

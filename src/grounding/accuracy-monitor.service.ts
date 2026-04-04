@@ -56,7 +56,7 @@ export class AccuracyMonitorService implements OnModuleInit {
         predicted_direction: input.predictedDirection,
         confidence: input.confidence,
         reasoning: input.reasoning,
-        thought_process: input.thoughtProcess as unknown as import('@prisma/client').Prisma.JsonValue,
+        thought_process: input.thoughtProcess as any,
         entry_price: input.entryPrice,
         outcome_5m: 'PENDING',
         outcome_15m: 'PENDING',

@@ -53,7 +53,15 @@ export class PersistentMemoryService {
 
     await this.syncToZepCloud(agentId, payload);
 
-    return entry;
+    return {
+      id: entry.id,
+      agentId: entry.agent_id,
+      eventType: entry.event_type,
+      content: entry.content,
+      sentiment: entry.sentiment,
+      outcome: entry.outcome,
+      timestamp: entry.timestamp,
+    };
   }
 
   async addSuccessMemory(agentId: string, content: string, details: Record<string, any>): Promise<MemoryEntry> {
@@ -81,9 +89,33 @@ export class PersistentMemoryService {
       take: 100,
     });
 
-    const traumaEvents = memories.filter(m => m.event_type === 'TRAUMA').slice(0, 10);
-    const successEvents = memories.filter(m => m.event_type === 'SUCCESS').slice(0, 10);
-    const recentInteractions = memories.slice(0, 20);
+    const traumaEvents = memories.filter(m => m.event_type === 'TRAUMA').slice(0, 10).map(m => ({
+      id: m.id,
+      agentId: m.agent_id,
+      eventType: m.event_type,
+      content: m.content,
+      sentiment: m.sentiment,
+      outcome: m.outcome,
+      timestamp: m.timestamp,
+    }));
+    const successEvents = memories.filter(m => m.event_type === 'SUCCESS').slice(0, 10).map(m => ({
+      id: m.id,
+      agentId: m.agent_id,
+      eventType: m.event_type,
+      content: m.content,
+      sentiment: m.sentiment,
+      outcome: m.outcome,
+      timestamp: m.timestamp,
+    }));
+    const recentInteractions = memories.slice(0, 20).map(m => ({
+      id: m.id,
+      agentId: m.agent_id,
+      eventType: m.event_type,
+      content: m.content,
+      sentiment: m.sentiment,
+      outcome: m.outcome,
+      timestamp: m.timestamp,
+    }));
 
     const decisionBias = this.deriveDecisionBias(agentId, memories);
 
@@ -108,7 +140,15 @@ export class PersistentMemoryService {
     });
 
     const scored = memories.map(m => ({
-      entry: m,
+      entry: {
+        id: m.id,
+        agentId: m.agent_id,
+        eventType: m.event_type,
+        content: m.content,
+        sentiment: m.sentiment,
+        outcome: m.outcome,
+        timestamp: m.timestamp,
+      },
       score: this.calculateTextSimilarity(query, m.content),
     }));
 

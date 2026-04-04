@@ -312,11 +312,11 @@ export class WorldStateService {
     await this.prisma.worldState.create({
       data: {
         version: snapshot.version,
-        snapshot: snapshot as unknown as Record<string, unknown>,
-        price_ticks: snapshot.priceTicks as unknown as Record<string, unknown>[],
-        news_items: snapshot.newsItems as unknown as Record<string, unknown>[],
-        entities: snapshot.entities as unknown as Record<string, unknown>[],
-        relationships: snapshot.relationships as unknown as Record<string, unknown>[],
+        snapshot: snapshot as unknown as import('@prisma/client').Prisma.JsonValue,
+        price_ticks: snapshot.priceTicks as unknown as import('@prisma/client').Prisma.JsonValue,
+        news_items: snapshot.newsItems as unknown as import('@prisma/client').Prisma.JsonValue,
+        entities: snapshot.entities as unknown as import('@prisma/client').Prisma.JsonValue,
+        relationships: snapshot.relationships as unknown as import('@prisma/client').Prisma.JsonValue,
       },
     });
   }
@@ -359,11 +359,11 @@ ${relatedRelationships.map(r => `- ${r.sourceLabel} --[${r.relationship}]--> ${r
               sentiment: n.sentiment,
               impact: n.impact,
             })),
-          },
+          } as unknown as import('@prisma/client').Prisma.JsonValue,
           tick_data: tickData.length > 0 ? {
             latest: tickData[tickData.length - 1],
             count: tickData.length,
-          } : null,
+          } as unknown as import('@prisma/client').Prisma.JsonValue : null,
         },
       });
     }

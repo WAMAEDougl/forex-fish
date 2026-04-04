@@ -84,7 +84,7 @@ export class EventSourcingService {
       type: e.event_type,
       aggregateId: e.aggregate_id,
       payload: e.payload,
-      metadata: e.metadata,
+      metadata: e.metadata as Record<string, any>,
       timestamp: e.timestamp,
       version: e.version,
     }));
@@ -110,7 +110,7 @@ export class EventSourcingService {
       type: event.event_type,
       aggregateId: event.aggregate_id,
       payload: event.payload,
-      metadata: event.metadata,
+      metadata: event.metadata as Record<string, any>,
       timestamp: event.timestamp,
       version: event.version,
     };

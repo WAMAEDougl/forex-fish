@@ -6,12 +6,15 @@ import {
 } from '../common/interfaces/agent.interface';
 import { TradeAction, SentimentType, PersonaType } from '../common/types/enums';
 import { KnowledgeGraph } from './knowledge-graph';
+import { LLMService } from '../common/llm.service';
 
 export class AgentInferenceEngine {
   private knowledgeGraph: KnowledgeGraph;
+  private llmService: LLMService;
 
-  constructor() {
+  constructor(llmService: LLMService) {
     this.knowledgeGraph = new KnowledgeGraph();
+    this.llmService = llmService;
   }
 
   async infer(
@@ -27,7 +30,7 @@ export class AgentInferenceEngine {
     const priceBias = this.calculatePriceBias(agent, event, context);
     const tradeAction = this.determineTradeAction(agent, event, sentiment, priceBias);
     const confidence = this.calculateConfidence(agent, event, context);
-    const reasoning = this.generateReasoning(agent, event, sentiment, priceBias, context);
+    const reasoning = await this.generateReasoning(agent, event, sentiment, priceBias, context);
 
     return {
       agent_id: agent.id,
@@ -141,13 +144,25 @@ export class AgentInferenceEngine {
     return Math.min(1, Math.max(0, confidence));
   }
 
-  private generateReasoning(
+  private async generateReasoning(
     agent: AgentPersona,
     event: EconomicEventData,
     sentiment: SentimentType,
     priceBias: number,
     context: GraphRAGContext
-  ): string {
+  ): Promise<string> {
+    if (this.llmService.isConfigured()) {
+      try {
+        const prompt = `Generate a trading reasoning for ${agent.name} (${agent.persona}) regarding ${event.currency_pair} based on ${event.event_type} event with impact score ${event.impact_score}. Sentiment: ${sentiment}, Price Bias: ${priceBias.toFixed(2)}. Key factors: ${context.relevant_factors.join(', ')}. Strategy: ${agent.strategy_type}, Risk Appetite: ${agent.risk_appetite}.`;
+        
+        const systemPrompt = `You are a forex trading expert generating reasoning for AI trading agents. Generate concise, professional trading reasoning in 2-3 sentences.`;
+        
+        return await this.llmService.generateCompletion(prompt, systemPrompt);
+      } catch (error) {
+        console.error('LLM generation failed, falling back to template:', error);
+      }
+    }
+
     const sentimentStr = sentiment.toString().toLowerCase();
     const biasDirection = priceBias > 0 ? 'upward' : 'downward';
     const factors = context.relevant_factors.join(', ');

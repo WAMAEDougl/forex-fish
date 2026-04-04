@@ -1,10 +1,12 @@
-import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger, Inject } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { AgentInferenceEngine } from '../agents/agent-inference.engine';
 import { PersonaFactory } from '../agents/persona.factory';
 import { AgentPersona, EconomicEventData, AgentInferenceResult, MarketBiasSignal } from '../common/interfaces/agent.interface';
 import { SimulationStatus, SentimentType, TradeAction, StrategyType, PersonaType } from '../common/types/enums';
+import { LLMService } from '../common/llm.service';
+import { OASISService, OASISMarketData } from '../common/oasis.service';
 
 @Injectable()
 export class SimulationService implements OnModuleInit {
@@ -13,14 +15,29 @@ export class SimulationService implements OnModuleInit {
   private inferenceEngine: AgentInferenceEngine;
   private activeAgents: Map<string, AgentPersona> = new Map();
 
-  constructor() {
+  constructor(
+    private llmService: LLMService,
+    private oasisService: OASISService,
+  ) {
     this.prisma = new PrismaClient();
-    this.inferenceEngine = new AgentInferenceEngine();
+    this.inferenceEngine = new AgentInferenceEngine(this.llmService);
   }
 
   async onModuleInit() {
     await this.prisma.$connect();
     this.logger.log('SimulationService initialized with Prisma');
+    
+    if (this.oasisService.isEnabled()) {
+      const healthy = await this.oasisService.healthCheck();
+      this.logger.log(`OASIS integration ${healthy ? 'ready' : 'unavailable'}`);
+    }
+  }
+
+  async getOASISMarketBias(marketData: OASISMarketData) {
+    if (!this.oasisService.isEnabled()) {
+      return null;
+    }
+    return this.oasisService.analyzeMarket(marketData);
   }
 
   async createAgentProfile(data: {
@@ -209,6 +226,7 @@ export class SimulationService implements OnModuleInit {
       },
       include: {
         agent: true,
+        event: true,
       },
     });
 

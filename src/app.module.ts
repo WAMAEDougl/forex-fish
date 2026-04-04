@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
-import { ApolloServerPluginLandingPageLocalDefault } from 'apollo-server-core';
+import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
 import { SimulationService } from './simulation/simulation.service';
 import { SimulationResolver } from './graphql/simulation.resolver';
@@ -13,19 +14,17 @@ import { ReportingModule } from './reporting/reporting.module';
 import { AgentsModule } from './agents/agents.module';
 import { Mt5Module } from './mt5/mt5.module';
 import { GroundingModule } from './grounding/grounding.module';
+import { ZeromqModule } from './zeromq/zeromq.module';
+import { OASISModule } from './common/oasis.module';
 
 @Module({
   imports: [
-    GraphQLModule.forRoot({
+    ConfigModule.forRoot({ isGlobal: true }),
+    GraphQLModule.forRoot<ApolloDriverConfig>({
+      driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), 'src/graphql/schema.gql'),
       sortSchema: true,
-      playground: {
-        title: 'ForexFish GraphQL Playground',
-      },
-      plugins: [ApolloServerPluginLandingPageLocalDefault()],
-      subscriptions: {
-        'graphql-ws': true,
-      },
+      playground: true,
     }),
     InteractionModule,
     MemoryModule,
@@ -35,6 +34,8 @@ import { GroundingModule } from './grounding/grounding.module';
     AgentsModule,
     Mt5Module,
     GroundingModule,
+    ZeromqModule,
+    OASISModule,
   ],
   providers: [
     SimulationService,

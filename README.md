@@ -9,6 +9,7 @@ ForexFish is an intelligent trading system that combines:
 - **GraphQL API** - Flexible query and mutation interface
 - **WebSocket real-time updates** - Live trading events and simulation
 - **MT5 ZeroMQ Bridge** - Direct connection to MetaTrader 5 for tick data and trade execution
+- **OASIS Agent Debate** - Multi-agent market sentiment analysis via OpenRouter
 - **Event sourcing** - Complete audit trail of all trading decisions
 - **GraphRAG** - Knowledge graph with retrieval-augmented generation
 
@@ -22,28 +23,35 @@ ForexFish is an intelligent trading system that combines:
 │  (Apollo)             (Socket.io)        (MT5 Integration)     │
 ├─────────────────────────────────────────────────────────────────┤
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐    │
-│  │  Agent   │  │ Simula-  │  │  Memory  │  │   Trading    │    │
-│  │  System  │  │  tion    │  │  Service │  │   Engine    │    │
+│  │  Agent   │  │ Simula-  │  │  Memory  │  │   OASIS      │    │
+│  │  System  │  │  tion    │  │  Service │  │   Debate    │    │
 │  └──────────┘  └──────────┘  └──────────┘  └──────────────┘    │
 ├─────────────────────────────────────────────────────────────────┤
 │  Prisma ORM                Neo4j Graph DB                     │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                    Python Sidecar (OASIS)                       │
+├─────────────────────────────────────────────────────────────────┤
+│  FastAPI (8000)  →  OpenRouter  →  5-Agent Debate              │
+│  Whale, Scalper, Fundamentalist, Technical, Sentiment          │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ## Tech Stack
 
-- **Runtime**: Node.js 20+
-- **Framework**: NestJS 10.x
+- **Backend**: Node.js 20+ with NestJS 10.x
+- **AI Sidecar**: Python 3.12+ with FastAPI
 - **API**: GraphQL (Apollo Server)
 - **Database**: PostgreSQL + Prisma, Neo4j
 - **Real-time**: WebSocket (Socket.io)
 - **Trading**: ZeroMQ + MetaTrader 5
-- **Queue**: BullMQ
+- **LLM**: OpenRouter (Claude, GPT, etc.)
 
 ## Project Structure
 
 ```
-project/
+forex-fish/
 ├── src/
 │   ├── main.ts                    # Application entry point
 │   ├── app.module.ts              # Root module
@@ -54,122 +62,159 @@ project/
 │   │   └── persona.factory.ts
 │   ├── simulation/                # Trading simulation
 │   │   └── simulation.service.ts
+│   ├── zeromq/                    # ZeroMQ price tick subscriber
+│   │   ├── zeromq.service.ts
+│   │   └── zeromq.module.ts
+│   ├── common/                    # Shared utilities
+│   │   ├── llm.service.ts         # OpenRouter LLM client
+│   │   ├── oasis.service.ts       # OASIS API client
+│   │   ├── oasis.module.ts
+│   │   └── ...
 │   ├── gateway/                   # WebSocket gateway
-│   │   ├── gateway.module.ts
-│   │   └── simulation.gateway.ts
 │   ├── graphql/                   # GraphQL schema & resolvers
-│   │   ├── graphql.module.ts
-│   │   ├── schema.gql
-│   │   └── simulation.resolver.ts
 │   ├── mt5/                       # MT5 ZeroMQ Bridge
-│   │   ├── meta-trader.service.ts
-│   │   └── mt5.module.ts
 │   ├── memory/                    # Memory/Vector store
-│   │   └── memory.service.ts
 │   ├── eventsourcing/             # Event sourcing
-│   │   └── event-sourcing.service.ts
 │   ├── graphrag/                  # GraphRAG
-│   │   └── graphrag.service.ts
+│   ├── grounding/                 # World state & accuracy
 │   ├── reporting/                 # Reporting agent
-│   │   └── report-agent.service.ts
-│   ├── interaction/               # Interaction processor
-│   │   └── interaction.processor.ts
-│   └── common/                    # Shared utilities
+│   └── interaction/               # Interaction processor
 ├── mt5-ea/                        # MetaTrader 5 Expert Advisor
 │   ├── ForexFishBridge.mq5
-│   ├── README.md
-│   └── INSTALLATION.md
+│   └── ...
+├── agent_controller/              # Python OASIS sidecar
+│   ├── agent_controller.py
+│   ├── requirements.txt
+│   └── README.md
 ├── prisma/
 │   └── schema.prisma              # Database schema
 ├── package.json
 └── tsconfig.json
 ```
 
-## Getting Started
+## Quick Start
 
-### Prerequisites
-
-- Node.js 20+
-- PostgreSQL (for Prisma)
-- Neo4j (for Graph database)
-- MetaTrader 5 terminal (optional, for live trading)
-
-### Installation
+### 1. Clone & Install
 
 ```bash
-cd project
+git clone <repo>
+cd forex-fish
 npm install
 ```
 
-### Database Setup
-
-```bash
-# Generate Prisma client
-npm run prisma:generate
-
-# Run migrations
-npm run prisma:migrate
-
-# Open Prisma Studio (optional)
-npm run prisma:studio
-```
-
-### Environment Variables
-
-Create `.env` file:
+### 2. Environment Variables
 
 ```env
-DATABASE_URL="postgresql://user:password@localhost:5432/forexfish"
-NEO4J_URI="bolt://localhost:7687"
-NEO4J_USER="neo4j"
-NEO4J_PASSWORD="password"
+# Database
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/forexfish"
+
+# Neo4j
+NEO4J_URI=bolt://localhost:7687
+NEO4J_USER=neo4j
+NEO4J_PASSWORD=password
+
+# OpenRouter (for agent reasoning)
+OPENROUTER_API_KEY=sk-or-v1-...
+
+# OASIS Agent Controller
+OASIS_ENABLED=true
+OASIS_API_URL=http://localhost:8000
 ```
 
-### Start Development Server
+### 3. Database Setup
+
+```bash
+npm run prisma:generate
+npm run prisma:migrate
+```
+
+### 4. Start NestJS
 
 ```bash
 npm run start:dev
 ```
 
-GraphQL Playground available at: http://localhost:3000/graphql
+GraphQL Playground: http://localhost:3000/graphql
+
+### 5. Start Python Agent Controller
+
+```bash
+cd agent_controller
+pip install -r requirements.txt
+export OPENROUTER_API_KEY="your-key"
+python agent_controller.py
+```
 
 ## MT5 Integration
 
-### Quick Setup
+### Setup
 
 1. **Install ZeroMQ DLLs** in MT5 `MQL5\Libraries\` folder
-   - See [mt5-ea/INSTALLATION.md](mt5-ea/INSTALLATION.md)
+2. **Compile** `mt5-ea/ForexFishBridge.mq5` in MetaEditor
+3. **Attach EA** to any chart
 
-2. **Compile the EA**
-   - Open `mt5-ea/ForexFishBridge.mq5` in MetaEditor
-   - Press F7 to compile
-
-3. **Attach to Chart**
-   - Drag the compiled EA onto any chart in MT5
-   - The EA will publish ticks on port 5555
-   - The EA will listen for commands on port 5556
-
-### Trading Commands
+### Usage
 
 ```typescript
-// Inject the service
-constructor(private mt5: MetaTraderService) {}
-
 // Subscribe to ticks
-const unsubscribe = this.mt5.onTick(tick => {
-  console.log(tick);
-});
+constructor(private zeromq: ZeromqService) {}
+
+onModuleInit() {
+  this.zeromq.connect();
+  this.zeromq.onTick(tick => {
+    console.log(tick.symbol, tick.bid, tick.ask);
+  });
+}
 
 // Execute trades
-await this.mt5.executeTrade('EURUSD', 'BUY', 0.01);
-await this.mt5.executeTrade('EURUSD', 'SELL', 0.01);
-
-// Close positions
-await this.mt5.closePosition(ticket);
+await this.zeromq.buy('EURUSD', 0.01);
+await this.zeromq.sell('EURUSD', 0.01);
+await this.zeromq.closePosition(ticket);
 
 // Get data
-const history = await this.mt5.getHistory('EURUSD', 100);
-const positions = await this.mt5.getOpenPositions();
+const positions = await this.zeromq.getOpenPositions();
+const history = await this.zeromq.getHistory('EURUSD');
+const account = await this.zeromq.getAccountInfo();
+```
+
+## OASIS Agent Debate
+
+The OASIS service runs a 3-round debate between 5 agent personas:
+
+| Persona | Strategy |
+|---------|----------|
+| Whale | Large institutional, macro-focused |
+| Scalper | High-frequency, micro-structure |
+| Fundamentalist | Economic data & news driven |
+| Technical Analyst | Chart patterns & indicators |
+| Sentiment Trader | Market mood & crowd behavior |
+
+### Request
+
+```typescript
+const result = await simulationService.getOASISMarketBias({
+  symbol: 'EURUSD',
+  bid: 1.0850,
+  ask: 1.0852,
+  spread: 2.0,
+  time: 1712246400,
+  news: ['ECB holds rates'],
+  indicators: { rsi: 55, macd: 0.001 },
+});
+```
+
+### Response
+
+```json
+{
+  "market_bias": "BULLISH",
+  "confidence_score": 0.72,
+  "reasoning": {
+    "summary": "3-round debate between 5 agents",
+    "agents": { "Whale": "...", "Scalper": "..." }
+  },
+  "rounds": [...]
+}
 ```
 
 ## GraphQL API
@@ -177,23 +222,19 @@ const positions = await this.mt5.getOpenPositions();
 ### Example Queries
 
 ```graphql
-# Get simulation status
 query GetSimulation {
   simulation {
     id
     status
-    agents {
-      name
-      role
-    }
+    agents { name, role }
   }
 }
 
-# Get agent memory
-query GetAgentMemory($agentId: ID!) {
-  agentMemory(agentId: $agentId) {
-    facts
-    relationships
+query GetMarketSentiment {
+  marketSentiment {
+    overallBias
+    sentimentScore
+    dominantPersona
   }
 }
 ```
@@ -201,7 +242,6 @@ query GetAgentMemory($agentId: ID!) {
 ### Example Mutations
 
 ```graphql
-# Start simulation
 mutation StartSimulation {
   startSimulation(input: {
     symbols: ["EURUSD", "GBPUSD"]
@@ -209,15 +249,6 @@ mutation StartSimulation {
   }) {
     id
     status
-  }
-}
-
-# Execute trade
-mutation ExecuteTrade($input: TradeInput!) {
-  executeTrade(input: $input) {
-    success
-    orderId
-    error
   }
 }
 ```
@@ -231,23 +262,24 @@ mutation ExecuteTrade($input: TradeInput!) {
 | `npm run start:dev` | Start in development mode |
 | `npm run prisma:generate` | Generate Prisma client |
 | `npm run prisma:migrate` | Run database migrations |
-| `npm run prisma:studio` | Open Prisma Studio |
 
-## Modules
+## Module Overview
 
 | Module | Description |
 |--------|-------------|
 | `agents` | Multi-agent AI system with persona-based agents |
 | `simulation` | Trading simulation engine |
+| `zeromq` | ZeroMQ subscriber for MT5 price ticks |
 | `graphql` | GraphQL API with Apollo Server |
 | `gateway` | WebSocket gateway for real-time updates |
 | `mt5` | ZeroMQ bridge to MetaTrader 5 |
 | `memory` | Vector store for agent memory |
 | `eventsourcing` | Event sourcing for audit trail |
 | `graphrag` | Knowledge graph with RAG capabilities |
+| `grounding` | World state & prediction accuracy |
 | `reporting` | Reporting and analysis agent |
-| `interaction` | User interaction processing |
+| `oasis` | OASIS agent debate integration |
 
 ## License
 
-MIT# forex-fish
+MIT

@@ -1,16 +1,29 @@
 import { Injectable } from '@nestjs/common';
+import { InputType, Field, Float } from '@nestjs/graphql';
 import { EventSourcingService } from './event-sourcing.service';
 import { GraphRAGService } from '../graphrag/graphrag.service';
 import { AgentInferenceEngine } from '../agents/agent-inference.engine';
 import { PrismaService } from '../common/prisma.service';
 import { v4 as uuid } from 'uuid';
 
-export interface GlobalEventInput {
+@InputType()
+export class GlobalEventInput {
+  @Field()
   title: string;
+
+  @Field({ nullable: true })
   description?: string;
+
+  @Field()
   event_type: string;
+
+  @Field()
   currency_pair: string;
+
+  @Field(() => Float)
   impact_score: number;
+
+  @Field({ nullable: true })
   source?: string;
 }
 

@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
+import GraphQLJSON from 'graphql-type-json';
 import { SimulationService } from './simulation/simulation.service';
 import { SimulationResolver } from './graphql/simulation.resolver';
 import { SimulationGateway } from './gateway/simulation.gateway';
@@ -16,6 +17,7 @@ import { Mt5Module } from './mt5/mt5.module';
 import { GroundingModule } from './grounding/grounding.module';
 import { ZeromqModule } from './zeromq/zeromq.module';
 import { OASISModule } from './common/oasis.module';
+import { PubSub } from './common/pubsub.service';
 
 @Module({
   imports: [
@@ -25,6 +27,9 @@ import { OASISModule } from './common/oasis.module';
       autoSchemaFile: join(process.cwd(), 'src/graphql/schema.gql'),
       sortSchema: true,
       playground: true,
+      buildSchemaOptions: {
+        scalarsMap: [{ type: () => GraphQLJSON, scalar: GraphQLJSON }],
+      },
     }),
     InteractionModule,
     MemoryModule,
@@ -41,6 +46,7 @@ import { OASISModule } from './common/oasis.module';
     SimulationService,
     SimulationResolver,
     SimulationGateway,
+    PubSub,
   ],
 })
 export class AppModule {}

@@ -1,239 +1,121 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
 type AgentProfile {
+  capital: Float!
+  created_at: DateTime!
   id: ID!
   name: String!
   persona: String!
   risk_appetite: Float!
   strategy_type: String!
-  capital: Float!
-  long_term_memory: String
-  memory_embedding: String
-  created_at: String!
-  updated_at: String!
-}
-
-type EconomicEvent {
-  id: ID!
-  title: String!
-  description: String
-  impact_score: Float!
-  currency_pair: String!
-  event_type: String!
-  timestamp: String!
-  source: String
-}
-
-type SimulationRun {
-  id: ID!
-  name: String
-  status: String!
-  started_at: String
-  completed_at: String
-  created_at: String!
-  results: [SimulationResult!]!
-}
-
-type SimulationResult {
-  id: ID!
-  agent: AgentProfile!
-  event: EconomicEvent!
-  emergent_sentiment: String!
-  price_bias: Float!
-  trade_action: String
-  confidence: Float!
-  reasoning: String
-  created_at: String!
-}
-
-type MarketSentiment {
-  overall_bias: Float!
-  sentiment_score: Float!
-  agent_count: Int!
-  dominant_persona: String!
-  currency_pairs: [CurrencySentiment!]!
+  updated_at: DateTime!
 }
 
 type CurrencySentiment {
-  currency_pair: String!
   bias: Float!
+  currency_pair: String!
   volume_estimate: Float!
 }
 
-type SimulationLog {
-  simulation_id: String!
-  agent_id: String!
-  agent_name: String!
-  action: String!
-  reasoning: String!
-  timestamp: String!
-}
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
 
-type AgentInteraction {
+type EconomicEvent {
+  currency_pair: String!
+  description: String
+  event_type: String!
   id: ID!
-  simulation_id: String!
-  agent_id: String!
-  target_agent_id: String
-  action: String!
-  content: String!
-  reasoning: String
-  sentiment: String
-  timestamp: String!
+  impact_score: Float!
+  source: String
+  timestamp: DateTime!
+  title: String!
 }
 
-type MarketNarrative {
-  id: ID!
-  simulation_id: String!
-  summary: String!
-  herd_behavior: HerdBehaviorAnalysis
-  contrarian: [ContrarianAnalysis!]
-  volatility: [VolatilityTrigger!]
-  key_events: [KeyEvent!]
-  timestamp: String!
+input GlobalEventInput {
+  currency_pair: String!
+  description: String
+  event_type: String!
+  impact_score: Float!
+  source: String
+  title: String!
 }
 
-type HerdBehaviorAnalysis {
-  detected: Boolean!
+"""
+The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
+"""
+scalar JSON
+
+type MarketSentiment {
+  agent_count: Int!
+  currency_pairs: [CurrencySentiment!]!
   dominant_persona: String!
-  sentiment: String!
-  strength: Float!
-  affected_agents: Int!
+  overall_bias: Float!
+  sentiment_score: Float!
 }
 
-type ContrarianAnalysis {
-  coalition_size: Int!
-  target_position: String!
-  confidence: Float!
-  supporting_personas: [String!]
-  reasoning: String!
-}
-
-type VolatilityTrigger {
-  event: String!
-  impact: Float!
-  affected_currency: String!
-  confidence: Float!
-  timestamp: String!
-}
-
-type KeyEvent {
-  type: String!
-  description: String!
-  impact: Float!
-  agents_affected: Int!
-}
-
-type GraphNode {
-  id: String!
-  type: String!
-  label: String!
-  properties: String
-}
-
-type GraphEdge {
-  source: String!
-  target: String!
-  relationship: String!
-  weight: Float!
-}
-
-type KnowledgeGraphState {
-  nodes: [GraphNode!]!
-  edges: [GraphEdge!]!
-}
-
-type ReflectionResult {
-  affected_agents: Int!
-  new_positions: Int!
-  consensus_shift: Float!
-  timestamp: String!
-}
-
-type MemoryState {
-  agent_id: String!
-  trauma_count: Int!
-  success_count: Int!
-  primary_biases: [String!]
+type Mutation {
+  addAgentInteraction(action: String!, agentId: ID!, content: String!, reasoning: String, simulationId: ID!, targetAgentId: ID): JSON!
+  addMemoryEntry(agentId: ID!, content: String!, eventType: String!, outcome: String, sentiment: String): JSON!
+  createAgentProfile(capital: Float!, name: String!, persona: String!, risk_appetite: Float!, strategy_type: String!): AgentProfile!
+  createEconomicEvent(currency_pair: String!, description: String, event_type: String!, impact_score: Float!, source: String, title: String!): EconomicEvent!
+  generateMarketNarrative(simulationId: ID!): JSON!
+  injectGlobalEvent(eventData: GlobalEventInput!, simulationId: ID!): JSON!
+  runAgentInference(agentId: ID!, eventId: ID!, simulationId: ID!): SimulationResult!
+  startSimulation(eventId: ID!): SimulationRun!
+  updateKnowledgeGraph(currencyPair: String!, eventType: String!, impact: Float!): JSON!
 }
 
 type Query {
+  getAgentActivity(simId: ID!): [SimulationResult!]!
+  getAgentMemoryState(agentId: ID!): JSON!
   getAgentProfile(id: ID!): AgentProfile
   getAgentProfiles: [AgentProfile!]!
   getEconomicEvent(id: ID!): EconomicEvent
   getEconomicEvents: [EconomicEvent!]!
+  getInteractions(simulationId: ID!): [JSON!]!
+  getKnowledgeGraphState: JSON!
+  getMarketNarrative(simulationId: ID!): JSON
+  getMarketSentiment: MarketSentiment!
   getSimulationRun(id: ID!): SimulationRun
   getSimulationRuns: [SimulationRun!]!
-  getAgentActivity(simId: ID!): [SimulationResult!]!
-  getMarketSentiment: MarketSentiment!
-  
-  getInteractions(simulationId: ID!): [AgentInteraction!]!
-  getMarketNarrative(simulationId: ID!): MarketNarrative
-  getKnowledgeGraphState: KnowledgeGraphState!
-  getAgentMemoryState(agentId: ID!): MemoryState
+  replaySimulation(simulationId: ID!): [JSON!]!
 }
 
-type Mutation {
-  createAgentProfile(
-    name: String!
-    persona: String!
-    risk_appetite: Float!
-    strategy_type: String!
-    capital: Float!
-  ): AgentProfile!
-
-  createEconomicEvent(
-    title: String!
-    description: String
-    impact_score: Float!
-    currency_pair: String!
-    event_type: String!
-    source: String
-  ): EconomicEvent!
-
-  startSimulation(eventId: ID!): SimulationRun!
-
-  runAgentInference(agentId: ID!, eventId: ID!, simulationId: ID!): SimulationResult!
-
-  injectGlobalEvent(simulationId: ID!, eventData: GlobalEventInput!): ReflectionResult!
-
-  addAgentInteraction(
-    simulationId: ID!
-    agentId: ID!
-    targetAgentId: ID
-    action: AgentAction!
-    content: String!
-    reasoning: String
-  ): AgentInteraction!
-
-  generateMarketNarrative(simulationId: ID!): MarketNarrative!
-
-  addMemoryEntry(
-    agentId: ID!
-    content: String!
-    eventType: String!
-    sentiment: String
-    outcome: String
-  ): MemoryState!
-
-  updateKnowledgeGraph(eventType: String!, currencyPair: String!, impact: Float!): KnowledgeGraphState!
-
-  replaySimulation(simulationId: ID!): [AgentInteraction!]!
+type SimulationLog {
+  action: String!
+  agent_id: String!
+  agent_name: String!
+  reasoning: String!
+  simulation_id: String!
+  timestamp: String!
 }
 
-input GlobalEventInput {
-  title: String!
-  description: String
-  event_type: String!
-  currency_pair: String!
-  impact_score: Float!
-  source: String
+type SimulationResult {
+  agent: AgentProfile!
+  confidence: Float!
+  created_at: DateTime!
+  emergent_sentiment: String!
+  event: EconomicEvent!
+  id: ID!
+  price_bias: Float!
+  reasoning: String
+  trade_action: String
 }
 
-enum AgentAction {
-  POST_ANALYSIS
-  COUNTER_ARGUMENT
-  FOLLOW_LEADER
+type SimulationRun {
+  completed_at: DateTime
+  created_at: DateTime!
+  id: ID!
+  name: String
+  started_at: DateTime
+  status: String!
 }
 
 type Subscription {
-  simulationLog(simId: ID!): SimulationLog!
   marketBiasUpdate: MarketSentiment!
+  simulationLog(simId: ID!): SimulationLog!
 }

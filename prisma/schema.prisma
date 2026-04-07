@@ -54,6 +54,7 @@ model AgentInteraction {
   timestamp      DateTime @default(now())
 
   agent          AgentProfile @relation(fields: [agent_id], references: [id], onDelete: Cascade)
+  simulation     SimulationRun @relation(fields: [simulation_id], references: [id], onDelete: Cascade)
 
   @@index([simulation_id])
   @@index([agent_id])
@@ -90,6 +91,8 @@ model SimulationRun {
   results          SimulationResult[]
   event_store      SimulationEvent[]
   interactions     AgentInteraction[]
+
+  @@index([status])
 }
 
 model SimulationEvent {
@@ -241,7 +244,7 @@ model ContextFragment {
 
 model WorldState {
   id              String   @id @default(uuid())
-  version         Int      @default(1)
+  version         BigInt   @default(1)
   snapshot        Json     @db.JsonB
   price_ticks     Json?    @db.JsonB
   news_items      Json?    @db.JsonB

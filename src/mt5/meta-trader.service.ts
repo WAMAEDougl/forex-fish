@@ -31,8 +31,8 @@ export class MetaTraderService implements OnModuleInit, OnModuleDestroy {
   private client: net.Socket | null = null;
   private readonly HOST = '127.0.0.1';
   private readonly PORT = 5556;
-  private RECONNECT_DELAY = 3000;
-  private MAX_RECONNECT_ATTEMPTS = 10;
+  private RECONNECT_DELAY = 5000;
+  private MAX_RECONNECT_ATTEMPTS = 3;
   private reconnectAttempts = 0;
   private lastTick: TickData | null = null;
   private tickCallbacks: ((tick: TickData) => void)[] = [];
@@ -119,7 +119,7 @@ export class MetaTraderService implements OnModuleInit, OnModuleDestroy {
 
   private async scheduleReconnect(): Promise<void> {
     if (this.reconnectAttempts >= this.MAX_RECONNECT_ATTEMPTS) {
-      this.logger.error('Max reconnection attempts reached');
+      this.logger.warn('MT5 not available — running without live market data. Start the MT5 EA bridge to enable trading.');
       return;
     }
 

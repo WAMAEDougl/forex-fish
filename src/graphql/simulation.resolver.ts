@@ -1,5 +1,5 @@
 import { Resolver, Query, Mutation, Args, ID, Subscription } from '@nestjs/graphql';
-import { Inject } from '@nestjs/common';
+import GraphQLJSON from 'graphql-type-json';
 import { PubSub } from '../common/pubsub.service';
 import { SimulationService } from '../simulation/simulation.service';
 import { 
@@ -17,8 +17,6 @@ import { GraphRAGService } from '../graphrag/graphrag.service';
 import { PersistentMemoryService } from '../memory/memory.service';
 import { EventSourcingService } from '../eventsourcing/event-sourcing.service';
 
-const PUB_SUB = 'PUB_SUB';
-
 @Resolver(() => AgentProfile)
 export class SimulationResolver {
   constructor(
@@ -29,7 +27,7 @@ export class SimulationResolver {
     private readonly graphRAG: GraphRAGService,
     private readonly memoryService: PersistentMemoryService,
     private readonly eventSourcing: EventSourcingService,
-    @Inject(PUB_SUB) private readonly pubSub: PubSub,
+    private readonly pubSub: PubSub,
   ) {}
 
   @Query(() => [AgentProfile])
@@ -140,23 +138,23 @@ export class SimulationResolver {
     };
   }
 
-  @Query(() => [Object])
+  @Query(() => [GraphQLJSON])
   async getInteractions(@Args('simulationId', { type: () => ID }) simulationId: string) {
     const interactions = await this.interactionEngine.getInteractionStats(simulationId);
     return [];
   }
 
-  @Query(() => Object, { nullable: true })
+  @Query(() => GraphQLJSON, { nullable: true })
   async getMarketNarrative(@Args('simulationId', { type: () => ID }) simulationId: string) {
     return this.reportAgent.getNarrative(simulationId);
   }
 
-  @Query(() => Object)
+  @Query(() => GraphQLJSON)
   async getKnowledgeGraphState() {
     return this.graphRAG.getFullGraph();
   }
 
-  @Query(() => Object)
+  @Query(() => GraphQLJSON)
   async getAgentMemoryState(@Args('agentId', { type: () => ID }) agentId: string) {
     const state = await this.memoryService.getAgentMemoryState(agentId);
     return {
@@ -232,15 +230,15 @@ export class SimulationResolver {
     return null;
   }
 
-  @Mutation(() => Object)
+  @Mutation(() => GraphQLJSON)
   async injectGlobalEvent(
     @Args('simulationId', { type: () => ID }) simulationId: string,
-    @Args('eventData') eventData: GlobalEventInput,
+    @Args('eventData', { type: () => GlobalEventInput }) eventData: GlobalEventInput,
   ) {
     return this.godModeController.injectGlobalEvent(simulationId, eventData);
   }
 
-  @Mutation(() => Object)
+  @Mutation(() => GraphQLJSON)
   async addAgentInteraction(
     @Args('simulationId', { type: () => ID }) simulationId: string,
     @Args('agentId', { type: () => ID }) agentId: string,
@@ -261,14 +259,14 @@ export class SimulationResolver {
     return { success: true };
   }
 
-  @Mutation(() => Object)
+  @Mutation(() => GraphQLJSON)
   async generateMarketNarrative(
     @Args('simulationId', { type: () => ID }) simulationId: string,
   ) {
     return this.reportAgent.generateMarketNarrative(simulationId);
   }
 
-  @Mutation(() => Object)
+  @Mutation(() => GraphQLJSON)
   async addMemoryEntry(
     @Args('agentId', { type: () => ID }) agentId: string,
     @Args('content') content: string,
@@ -284,7 +282,7 @@ export class SimulationResolver {
     return { success: true };
   }
 
-  @Mutation(() => Object)
+  @Mutation(() => GraphQLJSON)
   async updateKnowledgeGraph(
     @Args('eventType') eventType: string,
     @Args('currencyPair') currencyPair: string,
@@ -294,7 +292,7 @@ export class SimulationResolver {
     return this.graphRAG.getFullGraph();
   }
 
-  @Query(() => [Object])
+  @Query(() => [GraphQLJSON])
   async replaySimulation(
     @Args('simulationId', { type: () => ID }) simulationId: string,
   ) {

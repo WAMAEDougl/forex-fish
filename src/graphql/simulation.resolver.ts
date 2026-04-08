@@ -8,15 +8,38 @@ import {
   SimulationRun, 
   SimulationResult,
   MarketSentiment,
-  SimulationLog 
+  SimulationLog,
+  MarketBias,
+  SimulationRunExtended,
+  AgentProfileExtended
 } from '../common/types/graphql.types';
 import { GodModeController, GlobalEventInput } from '../eventsourcing/god-mode.controller';
+import { SimulationGateway } from '../gateway/simulation.gateway';
+import { InputType, Field } from '@nestjs/graphql';
 import { InteractionEngine, AgentInteractionData } from '../interaction/interaction.types';
 import { ReportAgent } from '../reporting/report-agent.service';
 import { GraphRAGService } from '../graphrag/graphrag.service';
 import { PersistentMemoryService } from '../memory/memory.service';
 import { EventSourcingService } from '../eventsourcing/event-sourcing.service';
-import { GroundingEngineService } from '../grounding/grounding-engine.service';
+import { GroundingEngineService, GroundingCycleResult } from '../grounding/grounding-engine.service';
+
+@InputType()
+export class SimulationInput {
+  @Field()
+  pair: string;
+
+  @Field()
+  eventType: string;
+}
+
+@InputType()
+export class EventInput {
+  @Field()
+  type: string;
+
+  @Field({ nullable: true })
+  description?: string;
+}
 
 @Resolver(() => AgentProfile)
 export class SimulationResolver {
@@ -30,6 +53,7 @@ export class SimulationResolver {
     private readonly eventSourcing: EventSourcingService,
     private readonly pubSub: PubSub,
     private readonly groundingEngine: GroundingEngineService,
+    private readonly simulationGateway: SimulationGateway,
   ) {}
 
   @Query(() => [AgentProfile])
@@ -140,6 +164,64 @@ export class SimulationResolver {
     };
   }
 
+  @Query(() => [MarketBias])
+  async getMarketBias() {
+    const sentiment = await this.simulationService.getMarketSentiment();
+    const pairs = Array.from(sentiment.currency_pairs.keys());
+    if (pairs.length === 0) {
+      return [{
+        pair: 'EURUSD',
+        bias: 'NEUTRAL',
+        confidence: 0.5,
+        dominantPersona: 'NONE',
+        agentCount: 0,
+        timestamp: new Date().toISOString(),
+      }];
+    }
+    return pairs.map(pair => {
+      const pairData = sentiment.currency_pairs.get(pair);
+      const bias = pairData && pairData.bias > 0.1 ? 'BULLISH' : pairData && pairData.bias < -0.1 ? 'BEARISH' : 'NEUTRAL';
+      return {
+        pair,
+        bias,
+        confidence: Math.abs(pairData?.bias || 0),
+        dominantPersona: sentiment.dominant_persona,
+        agentCount: sentiment.agent_count,
+        timestamp: new Date().toISOString(),
+      };
+    });
+  }
+
+  @Query(() => [AgentProfileExtended])
+  async getAgents() {
+    const agents = await this.simulationService.getActiveAgents();
+    return agents.map(a => ({
+      id: a.id,
+      name: a.name,
+      persona: a.persona,
+      capital: a.capital,
+      riskAppetite: a.risk_appetite,
+      confidence: 0.5,
+      lastAction: null,
+      pnl: 0,
+      isActive: true,
+    }));
+  }
+
+  @Query(() => [SimulationRunExtended])
+  async getSimulations() {
+    const runs = await this.simulationService.getAllSimulationRuns();
+    return runs.map(r => ({
+      id: r.id,
+      status: r.status,
+      pair: 'EURUSD',
+      eventType: 'UNKNOWN',
+      startedAt: r.started_at?.toISOString(),
+      completedAt: r.completed_at?.toISOString(),
+      createdAt: r.created_at.toISOString(),
+    }));
+  }
+
   @Query(() => [GraphQLJSON])
   async getInteractions(@Args('simulationId', { type: () => ID }) simulationId: string) {
     const interactions = await this.interactionEngine.getInteractionStats(simulationId);
@@ -154,6 +236,31 @@ export class SimulationResolver {
   @Query(() => GraphQLJSON)
   async getKnowledgeGraphState() {
     return this.graphRAG.getFullGraph();
+  }
+
+  @Query(() => GraphQLJSON)
+  async getAccuracy() {
+    const metrics = await this.groundingEngine.getAccuracyMetrics(24);
+    return {
+      overall: (metrics.accuracy15m * 100).toFixed(1),
+      byPair: Object.entries(metrics.byPersona).map(([pair, data]) => ({
+        pair,
+        accuracy: (data.accuracy * 100).toFixed(1),
+        totalPredictions: data.predictions,
+        correctPredictions: Math.round(data.predictions * data.accuracy),
+      })),
+      byAgent: Object.entries(metrics.byPersona).map(([agentId, data]) => ({
+        agentId,
+        agentName: agentId,
+        accuracy: (data.accuracy * 100).toFixed(1),
+      })),
+    };
+  }
+
+  @Query(() => GraphQLJSON)
+  async getGrounding() {
+    const activePairs = this.groundingEngine.getActivePairs();
+    return { activePairs };
   }
 
   @Query(() => GraphQLJSON)
@@ -205,22 +312,43 @@ export class SimulationResolver {
     });
   }
 
-  @Mutation(() => SimulationRun)
-  async startSimulation(@Args('eventId', { type: () => ID }) eventId: string) {
-    const result = await this.simulationService.startSimulation(eventId);
-    
-    this.pubSub.publish('simulationCompleted', {
-      simulationLog: result.results.map(r => ({
-        simulation_id: result.simulation.id,
-        agent_id: r.agent_id,
-        agent_name: 'Agent',
-        action: r.trade_action,
-        reasoning: r.reasoning,
-        timestamp: new Date().toISOString(),
-      })),
+  @Mutation(() => SimulationRunExtended)
+  async createSimulation(@Args('input', { type: () => SimulationInput }) input: SimulationInput) {
+    const event = await this.simulationService.createEconomicEvent({
+      title: `${input.eventType} on ${input.pair}`,
+      currency_pair: input.pair,
+      event_type: input.eventType,
+      impact_score: 5.0,
     });
     
-    return result.simulation;
+    const simulation = await this.simulationService.startSimulation(event.id);
+    
+    this.simulationGateway.emitSimulationComplete(simulation.id, 0);
+    
+    return {
+      id: simulation.id,
+      status: simulation.status,
+      pair: input.pair,
+      eventType: input.eventType,
+      startedAt: simulation.started_at?.toISOString(),
+      completedAt: simulation.completed_at?.toISOString(),
+      createdAt: simulation.created_at.toISOString(),
+    };
+  }
+
+  @Mutation(() => SimulationRunExtended)
+async startSimulation(@Args('simId', { type: () => ID }) simId: string) {
+    const run = await this.simulationService.getSimulationRun(simId);
+    this.simulationGateway.emitSimulationComplete(simId, 0);
+    return {
+      id: run?.id,
+      status: run?.status,
+      pair: 'EURUSD',
+      eventType: 'UNKNOWN',
+      startedAt: run?.started_at?.toISOString(),
+      completedAt: run?.completed_at?.toISOString(),
+      createdAt: run?.created_at?.toISOString(),
+    };
   }
 
   @Mutation(() => SimulationResult)
@@ -238,6 +366,20 @@ export class SimulationResolver {
     @Args('eventData', { type: () => GlobalEventInput }) eventData: GlobalEventInput,
   ) {
     return this.godModeController.injectGlobalEvent(simulationId, eventData);
+  }
+
+  @Mutation(() => GraphQLJSON)
+  async injectEvent(
+    @Args('simId', { type: () => ID }) simId: string,
+    @Args('event', { type: () => EventInput }) event: EventInput,
+  ) {
+    this.simulationGateway.emitAgentAction(
+      simId,
+      'GOD_MODE',
+      event.type,
+      event.description || 'Injected event',
+    );
+    return { success: true };
   }
 
   @Mutation(() => GraphQLJSON)

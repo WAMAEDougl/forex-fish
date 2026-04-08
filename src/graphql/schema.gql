@@ -13,6 +13,18 @@ type AgentProfile {
   updated_at: DateTime!
 }
 
+type AgentProfileExtended {
+  id: ID!
+  name: String!
+  persona: String!
+  capital: Float!
+  riskAppetite: Float!
+  confidence: Float!
+  lastAction: String
+  pnl: Float!
+  isActive: Boolean!
+}
+
 type CurrencySentiment {
   bias: Float!
   currency_pair: String!
@@ -35,6 +47,11 @@ type EconomicEvent {
   title: String!
 }
 
+input EventInput {
+  type: String!
+  description: String
+}
+
 input GlobalEventInput {
   currency_pair: String!
   description: String
@@ -49,6 +66,15 @@ The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://
 """
 scalar JSON
 
+type MarketBias {
+  pair: String!
+  bias: String!
+  confidence: Float!
+  dominantPersona: String!
+  agentCount: Int!
+  timestamp: String!
+}
+
 type MarketSentiment {
   agent_count: Int!
   currency_pairs: [CurrencySentiment!]!
@@ -62,25 +88,32 @@ type Mutation {
   addMemoryEntry(agentId: ID!, content: String!, eventType: String!, outcome: String, sentiment: String): JSON!
   createAgentProfile(capital: Float!, name: String!, persona: String!, risk_appetite: Float!, strategy_type: String!): AgentProfile!
   createEconomicEvent(currency_pair: String!, description: String, event_type: String!, impact_score: Float!, source: String, title: String!): EconomicEvent!
+  createSimulation(input: SimulationInput!): SimulationRunExtended!
   generateMarketNarrative(simulationId: ID!): JSON!
+  injectEvent(simId: String!, event: EventInput!): JSON!
   injectGlobalEvent(eventData: GlobalEventInput!, simulationId: ID!): JSON!
   runAgentInference(agentId: ID!, eventId: ID!, simulationId: ID!): SimulationResult!
-  startSimulation(eventId: ID!): SimulationRun!
+  setActivePairs(pairs: [String!]!): JSON!
+  startSimulation(simId: ID!): SimulationRunExtended!
   updateKnowledgeGraph(currencyPair: String!, eventType: String!, impact: Float!): JSON!
 }
 
 type Query {
+  getActivePairs: JSON!
   getAgentActivity(simId: ID!): [SimulationResult!]!
   getAgentMemoryState(agentId: ID!): JSON!
   getAgentProfile(id: ID!): AgentProfile
   getAgentProfiles: [AgentProfile!]!
+  getAgents: [AgentProfileExtended!]!
   getEconomicEvent(id: ID!): EconomicEvent
   getEconomicEvents: [EconomicEvent!]!
   getInteractions(simulationId: ID!): [JSON!]!
   getKnowledgeGraphState: JSON!
+  getMarketBias: [MarketBias!]!
   getMarketNarrative(simulationId: ID!): JSON
   getMarketSentiment: MarketSentiment!
   getSimulationRun(id: ID!): SimulationRun
+  getSimulations: [SimulationRunExtended!]!
   getSimulationRuns: [SimulationRun!]!
   replaySimulation(simulationId: ID!): [JSON!]!
 }
@@ -106,6 +139,11 @@ type SimulationResult {
   trade_action: String
 }
 
+input SimulationInput {
+  pair: String!
+  eventType: String!
+}
+
 type SimulationRun {
   completed_at: DateTime
   created_at: DateTime!
@@ -113,6 +151,16 @@ type SimulationRun {
   name: String
   started_at: DateTime
   status: String!
+}
+
+type SimulationRunExtended {
+  id: ID!
+  status: String!
+  pair: String!
+  eventType: String!
+  startedAt: String
+  completedAt: String
+  createdAt: String
 }
 
 type Subscription {

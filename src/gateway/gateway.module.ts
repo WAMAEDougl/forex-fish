@@ -6,3 +6,5 @@ import { SimulationGateway } from './simulation.gateway';
   exports: [SimulationGateway],
 })
 export class GatewayModule {}
+
+export { SimulationGateway };

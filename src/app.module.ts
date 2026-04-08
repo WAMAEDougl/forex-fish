@@ -6,7 +6,7 @@ import { join } from 'path';
 import GraphQLJSON from 'graphql-type-json';
 import { SimulationService } from './simulation/simulation.service';
 import { SimulationResolver } from './graphql/simulation.resolver';
-import { SimulationGateway } from './gateway/simulation.gateway';
+import { SimulationGateway, GatewayModule } from './gateway/gateway.module';
 import { InteractionModule } from './interaction/interaction.module';
 import { MemoryModule } from './memory/memory.module';
 import { EventSourcingModule } from './eventsourcing/eventsourcing.module';
@@ -44,6 +44,7 @@ import { LearningModule } from './learning/learning.module';
     ZeromqModule,
     OASISModule,
     TradingModule,
+    GatewayModule,
     LearningModule,
   ],
   providers: [

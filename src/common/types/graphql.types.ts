@@ -155,3 +155,90 @@ export class SimulationLog {
   @Field()
   timestamp: string;
 }
+
+@ObjectType()
+export class MarketBias {
+  @Field()
+  pair: string;
+
+  @Field()
+  bias: string;
+
+  @Field(() => Float)
+  confidence: number;
+
+  @Field()
+  dominantPersona: string;
+
+  @Field(() => Int)
+  agentCount: number;
+
+  @Field()
+  timestamp: string;
+}
+
+@ObjectType()
+export class SimulationRunExtended {
+  @Field(() => ID)
+  id: string;
+
+  @Field()
+  status: string;
+
+  @Field()
+  pair: string;
+
+  @Field()
+  eventType: string;
+
+  @Field({ nullable: true })
+  startedAt?: string;
+
+  @Field({ nullable: true })
+  completedAt?: string;
+
+  @Field({ nullable: true })
+  createdAt?: string;
+}
+
+@ObjectType()
+export class AgentProfileExtended {
+  @Field(() => ID)
+  id: string;
+
+  @Field()
+  name: string;
+
+  @Field()
+  persona: string;
+
+  @Field(() => Float)
+  capital: number;
+
+  @Field(() => Float)
+  riskAppetite: number;
+
+  @Field(() => Float)
+  confidence: number;
+
+  @Field({ nullable: true })
+  lastAction?: string;
+
+  @Field(() => Float)
+  pnl: number;
+
+  @Field()
+  isActive: boolean;
+}
+
+@ObjectType()
+export class GroundingState {
+  @Field(() => [String])
+  activePairs: string[];
+
+  @Field({ nullable: true })
+  predictions?: string;
+
+  @Field({ nullable: true })
+  accuracy?: string;
+}

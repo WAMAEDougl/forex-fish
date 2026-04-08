@@ -16,6 +16,7 @@ import { ReportAgent } from '../reporting/report-agent.service';
 import { GraphRAGService } from '../graphrag/graphrag.service';
 import { PersistentMemoryService } from '../memory/memory.service';
 import { EventSourcingService } from '../eventsourcing/event-sourcing.service';
+import { GroundingEngineService } from '../grounding/grounding-engine.service';
 
 @Resolver(() => AgentProfile)
 export class SimulationResolver {
@@ -28,6 +29,7 @@ export class SimulationResolver {
     private readonly memoryService: PersistentMemoryService,
     private readonly eventSourcing: EventSourcingService,
     private readonly pubSub: PubSub,
+    private readonly groundingEngine: GroundingEngineService,
   ) {}
 
   @Query(() => [AgentProfile])
@@ -290,6 +292,19 @@ export class SimulationResolver {
   ) {
     await this.graphRAG.linkEventToCurrencies({ event_type: eventType, currency_pair: currencyPair, impact_score: impact });
     return this.graphRAG.getFullGraph();
+  }
+
+  @Mutation(() => GraphQLJSON)
+  async setActivePairs(
+    @Args('pairs', { type: () => [String] }) pairs: string[],
+  ) {
+    this.groundingEngine.setActivePairs(pairs);
+    return { activePairs: this.groundingEngine.getActivePairs() };
+  }
+
+  @Query(() => GraphQLJSON)
+  async getActivePairs() {
+    return { activePairs: this.groundingEngine.getActivePairs() };
   }
 
   @Query(() => [GraphQLJSON])

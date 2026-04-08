@@ -35,6 +35,7 @@ export class GroundingEngineService implements OnModuleInit {
   private lastWorldState: WorldStateSnapshot | null = null;
   private lastTickData: TickData[] = [];
   private groundingInterval: NodeJS.Timeout | null = null;
+  private activePairs: string[] = ['EURUSD']; // default, updated by UI
 
   constructor(
     private newsIngestor: NewsIngestorService,
@@ -98,17 +99,23 @@ export class GroundingEngineService implements OnModuleInit {
 
     let simulationResult: SimulationResult | undefined;
     try {
-      simulationResult = await this.shadowSimulation.runShadowSimulation('EURUSD', worldState);
-      this.logger.log(
-        `Simulation complete: ${simulationResult.finalVerdict} (agreement: ${(simulationResult.swarmAgreement * 100).toFixed(1)}%)`
-      );
+      // Run simulation and execute trades for each active pair
+      for (const pair of this.activePairs) {
+        try {
+          simulationResult = await this.shadowSimulation.runShadowSimulation(pair, worldState);
+          this.logger.log(
+            `[${pair}] Simulation complete: ${simulationResult.finalVerdict} (agreement: ${(simulationResult.swarmAgreement * 100).toFixed(1)}%)`
+          );
 
-      // Execute trade if autonomous trading is enabled
-      const trade = await this.tradeExecutor.evaluateAndExecute(simulationResult, 'EURUSD');
-      if (trade) {
-        this.logger.log(
-          `Autonomous trade: ${trade.success ? 'SUCCESS' : 'FAILED'} | ${trade.action} ${trade.volume} ${trade.symbol}`
-        );
+          const trade = await this.tradeExecutor.evaluateAndExecute(simulationResult, pair);
+          if (trade) {
+            this.logger.log(
+              `[${pair}] Autonomous trade: ${trade.success ? 'SUCCESS' : 'FAILED'} | ${trade.action} ${trade.volume} ${trade.symbol}`
+            );
+          }
+        } catch (error) {
+          this.logger.error(`[${pair}] Simulation/execution failed: ${error}`);
+        }
       }
     } catch (error) {
       this.logger.error(`Shadow simulation failed: ${error}`);
@@ -185,5 +192,14 @@ export class GroundingEngineService implements OnModuleInit {
 
   async getLatestTicks(): Promise<TickData[]> {
     return this.lastTickData.slice(-20);
+  }
+
+  setActivePairs(pairs: string[]): void {
+    this.activePairs = pairs.map(p => p.toUpperCase().replace('/', ''));
+    this.logger.log(`Active pairs updated: ${this.activePairs.join(', ')}`);
+  }
+
+  getActivePairs(): string[] {
+    return [...this.activePairs];
   }
 }

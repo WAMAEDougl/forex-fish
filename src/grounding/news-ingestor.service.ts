@@ -102,6 +102,11 @@ export class NewsIngestorService {
   }
 
   private async fetchRSSNews(): Promise<NewsItem[]> {
+    // Use NewsAPI if key is configured
+    if (this.NEWS_API_KEY) {
+      return this.fetchNewsAPI();
+    }
+
     const rssFeeds = [
       'https://www.investing.com/rss/news.rss',
       'https://www.forexfactory.com/news.php?format=RSS',
@@ -122,6 +127,41 @@ export class NewsIngestorService {
       }
     }
 
+    return newsItems;
+  }
+
+  private async fetchNewsAPI(): Promise<NewsItem[]> {
+    const queries = ['forex', 'currency trading', 'EUR USD', 'central bank interest rate'];
+    const newsItems: NewsItem[] = [];
+
+    for (const q of queries.slice(0, 2)) {
+      try {
+        const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(q)}&language=en&sortBy=publishedAt&pageSize=10&apiKey=${this.NEWS_API_KEY}`;
+        const response = await fetch(url);
+        if (!response.ok) continue;
+
+        const data = await response.json();
+        if (data.articles && Array.isArray(data.articles)) {
+          for (const article of data.articles) {
+            if (!article.title || article.title === '[Removed]') continue;
+            newsItems.push({
+              id: `newsapi-${article.url}`,
+              title: article.title,
+              description: article.description || '',
+              publishedAt: new Date(article.publishedAt),
+              source: article.source?.name || 'NewsAPI',
+              url: article.url,
+              currencies: this.extractCurrencies(article.title + ' ' + (article.description || '')),
+              impact: this.assessImpact(article.title),
+            });
+          }
+        }
+      } catch (error) {
+        this.logger.error(`NewsAPI fetch failed for query "${q}": ${error}`);
+      }
+    }
+
+    this.logger.log(`NewsAPI: fetched ${newsItems.length} articles`);
     return newsItems;
   }
 

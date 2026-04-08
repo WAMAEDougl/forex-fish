@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { ZeromqService } from '../zeromq/zeromq.service';
 import { PrismaService } from '../common/prisma.service';
 import { SimulationResult } from '../grounding/shadow-simulation.service';
+import { SelfLearningService } from '../learning/self-learning.service';
 
 export interface TradeDecision {
   symbol: string;
@@ -44,6 +45,7 @@ export class TradeExecutorService implements OnModuleInit {
     private zeromq: ZeromqService,
     private prisma: PrismaService,
     private config: ConfigService,
+    private learning: SelfLearningService,
   ) {
     this.autonomousEnabled = this.config.get('AUTONOMOUS_TRADING_ENABLED') === 'true';
   }
@@ -94,32 +96,41 @@ export class TradeExecutorService implements OnModuleInit {
     if (action === 'HOLD' || action === 'WAIT' as any) return null;
     if (!['BUY', 'SELL'].includes(action)) return null;
 
-    // Gate on confidence and agreement
-    const avgConfidence =
-      result.agentOpinions.reduce((sum, a) => sum + a.confidence, 0) /
-      Math.max(result.agentOpinions.length, 1);
+    // Gate on confidence and agreement — use dynamic thresholds from self-learning
+    const minConfidence = this.learning.getConfidenceThreshold();
+    const minAgreement = this.learning.getAgreementThreshold();
 
-    if (avgConfidence < this.MIN_CONFIDENCE) {
-      this.logger.debug(`Confidence too low: ${avgConfidence.toFixed(2)} < ${this.MIN_CONFIDENCE}`);
+    // Weight agent opinions by their learned performance
+    const weightedConfidence =
+      result.agentOpinions.reduce((sum, a) => {
+        const w = this.learning.getAgentWeight(a.persona);
+        return sum + a.confidence * w;
+      }, 0) /
+      Math.max(
+        result.agentOpinions.reduce((sum, a) => sum + this.learning.getAgentWeight(a.persona), 0),
+        1,
+      );
+
+    if (weightedConfidence < minConfidence) {
+      this.logger.debug(`Weighted confidence too low: ${weightedConfidence.toFixed(2)} < ${minConfidence}`);
       return null;
     }
 
-    if (result.swarmAgreement < this.MIN_AGREEMENT) {
-      this.logger.debug(`Agreement too low: ${result.swarmAgreement.toFixed(2)} < ${this.MIN_AGREEMENT}`);
+    if (result.swarmAgreement < minAgreement) {
+      this.logger.debug(`Agreement too low: ${result.swarmAgreement.toFixed(2)} < ${minAgreement}`);
       return null;
     }
 
-    // Scale volume by confidence
     const volume = Math.min(
       this.MAX_VOLUME,
-      parseFloat((this.BASE_VOLUME * (avgConfidence / this.MIN_CONFIDENCE)).toFixed(2)),
+      parseFloat((this.BASE_VOLUME * (weightedConfidence / minConfidence)).toFixed(2)),
     );
 
     return {
       symbol,
       action,
       volume,
-      confidence: avgConfidence,
+      confidence: weightedConfidence,
       swarmAgreement: result.swarmAgreement,
       reasoning: result.finalVerdict,
       simulationId: result.simulationId,

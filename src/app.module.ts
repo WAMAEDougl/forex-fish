@@ -19,6 +19,7 @@ import { ZeromqModule } from './zeromq/zeromq.module';
 import { OASISModule } from './common/oasis.module';
 import { PubSub } from './common/pubsub.service';
 import { TradingModule } from './trading/trading.module';
+import { LearningModule } from './learning/learning.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { TradingModule } from './trading/trading.module';
     ZeromqModule,
     OASISModule,
     TradingModule,
+    LearningModule,
   ],
   providers: [
     SimulationService,

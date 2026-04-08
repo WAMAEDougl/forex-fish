@@ -5,9 +5,10 @@ Multi-agent AI simulation backend for Forex trading with real-time MetaTrader 5 
 ## Overview
 
 ForexFish is an intelligent trading system that combines:
-- **Multi-agent AI architecture** - Multiple specialized agents working together
+- **Multi-agent AI architecture** - 20 specialized agents working together
 - **GraphQL API** - Flexible query and mutation interface
 - **WebSocket real-time updates** - Live trading events and simulation
+- **React UI Dashboard** - Real-time monitoring and control interface
 - **MT5 ZeroMQ Bridge** - Direct connection to MetaTrader 5 for tick data and trade execution
 - **OASIS Agent Debate** - Multi-agent market sentiment analysis via OpenRouter
 - **Event sourcing** - Complete audit trail of all trading decisions
@@ -29,6 +30,14 @@ ForexFish is an intelligent trading system that combines:
 ├─────────────────────────────────────────────────────────────────┤
 │  Prisma ORM                Neo4j Graph DB                     │
 └─────────────────────────────────────────────────────────────────┘
+                           ↓ ↑
+┌─────────────────────────────────────────────────────────────────┐
+│                      forex-fish-ui                              │
+├─────────────────────────────────────────────────────────────────┤
+│  React 18 + Vite + Tailwind + shadcn/ui                        │
+│  Apollo Client (GraphQL)      Socket.io (Real-time)            │
+│  Recharts              React Flow (Knowledge Graph)            │
+└─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Python Sidecar (OASIS)                       │
@@ -43,6 +52,7 @@ ForexFish is an intelligent trading system that combines:
 - **Backend**: Node.js 20+ with NestJS 10.x
 - **AI Sidecar**: Python 3.12+ with FastAPI
 - **API**: GraphQL (Apollo Server)
+- **Frontend**: React 18 + Vite + Tailwind (see forex-fish-ui)
 - **Database**: PostgreSQL + Prisma, Neo4j
 - **Real-time**: WebSocket (Socket.io)
 - **Trading**: ZeroMQ + MetaTrader 5
@@ -97,9 +107,15 @@ forex-fish/
 ### 1. Clone & Install
 
 ```bash
-git clone <repo>
+git clone https://github.com/WAMAEDougl/forex-fish.git
 cd forex-fish
 npm install
+
+# Clone and setup UI
+cd ..
+git clone https://github.com/WAMAEDougl/agent-symphony.git forex-fish-ui
+cd forex-fish-ui
+npm install --legacy-peer-deps
 ```
 
 ### 2. Environment Variables
@@ -121,25 +137,42 @@ OASIS_ENABLED=true
 OASIS_API_URL=http://localhost:8000
 ```
 
+Create `forex-fish-ui/.env`:
+```env
+VITE_GRAPHQL_URL=http://localhost:3000/graphql
+VITE_WS_URL=http://localhost:4000
+```
+
 ### 3. Database Setup
 
 ```bash
+cd forex-fish
 npm run prisma:generate
 npm run prisma:migrate
 ```
 
-### 4. Start NestJS
+### 4. Start Backend
 
 ```bash
+cd forex-fish
 npm run start:dev
 ```
 
 GraphQL Playground: http://localhost:3000/graphql
 
-### 5. Start Python Agent Controller
+### 5. Start UI
 
 ```bash
-cd agent_controller
+cd forex-fish-ui
+npm run dev
+```
+
+UI Dashboard: http://localhost:8080
+
+### 6. Start Python Agent Controller (Optional)
+
+```bash
+cd forex-fish/agent_controller
 pip install -r requirements.txt
 export OPENROUTER_API_KEY="your-key"
 python agent_controller.py

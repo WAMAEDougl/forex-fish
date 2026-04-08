@@ -18,6 +18,7 @@ import { GroundingModule } from './grounding/grounding.module';
 import { ZeromqModule } from './zeromq/zeromq.module';
 import { OASISModule } from './common/oasis.module';
 import { PubSub } from './common/pubsub.service';
+import { TradingModule } from './trading/trading.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { PubSub } from './common/pubsub.service';
     GroundingModule,
     ZeromqModule,
     OASISModule,
+    TradingModule,
   ],
   providers: [
     SimulationService,

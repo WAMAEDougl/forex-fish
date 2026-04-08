@@ -5,6 +5,7 @@ import { WorldStateService, WorldStateSnapshot } from './world-state.service';
 import { ShadowSimulationService, SimulationResult } from './shadow-simulation.service';
 import { AccuracyMonitorService, AccuracyMetrics } from './accuracy-monitor.service';
 import { MetaTraderService, TickData } from '../mt5/meta-trader.service';
+import { TradeExecutorService } from '../trading/trade-executor.service';
 
 export interface GroundingCycleResult {
   timestamp: Date;
@@ -41,6 +42,7 @@ export class GroundingEngineService implements OnModuleInit {
     private shadowSimulation: ShadowSimulationService,
     private accuracyMonitor: AccuracyMonitorService,
     private metaTrader: MetaTraderService,
+    private tradeExecutor: TradeExecutorService,
   ) {}
 
   async onModuleInit() {
@@ -100,6 +102,14 @@ export class GroundingEngineService implements OnModuleInit {
       this.logger.log(
         `Simulation complete: ${simulationResult.finalVerdict} (agreement: ${(simulationResult.swarmAgreement * 100).toFixed(1)}%)`
       );
+
+      // Execute trade if autonomous trading is enabled
+      const trade = await this.tradeExecutor.evaluateAndExecute(simulationResult, 'EURUSD');
+      if (trade) {
+        this.logger.log(
+          `Autonomous trade: ${trade.success ? 'SUCCESS' : 'FAILED'} | ${trade.action} ${trade.volume} ${trade.symbol}`
+        );
+      }
     } catch (error) {
       this.logger.error(`Shadow simulation failed: ${error}`);
     }
